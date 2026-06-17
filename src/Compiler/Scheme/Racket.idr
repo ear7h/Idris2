@@ -333,7 +333,7 @@ getFgnCall appdir (n, fc, d) = schFgnDef appdir fc n d
 
 startRacket : String -> String -> String -> String
 startRacket racket appdir target = """
-  #!/bin/sh
+  #!REPLACE_BIN_BASH
   # \{ generatedString "Racket" }
 
   set -e # exit on any error
@@ -364,7 +364,7 @@ startRacketCmd racket appdir target = """
 
 startRacketWinSh : String -> String -> String -> String
 startRacketWinSh racket appdir target = """
-  #!/bin/sh
+  #!REPLACE_BIN_BASH
   # \{ generatedString "Racket" }
 
   set -e # exit on any error

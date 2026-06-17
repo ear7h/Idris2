@@ -74,7 +74,7 @@ startChezCmd chez appDirSh targetSh = """
 
 startChezWinSh : String -> String -> String -> String
 startChezWinSh chez appDirSh targetSh = """
-  #!/bin/sh
+  #!REPLACE_BIN_BASH
   # \{ generatedString "ChezSep" }
 
   set -e # exit on any error
