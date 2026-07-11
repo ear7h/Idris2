@@ -331,9 +331,9 @@ getFgnCall : {auto f : Ref Done (List String) } ->
              String -> (Name, FC, NamedDef) -> Core (Builder, Builder)
 getFgnCall appdir (n, fc, d) = schFgnDef appdir fc n d
 
-startRacket : String -> String -> String -> String
-startRacket racket appdir target = """
-  #!/bin/sh
+startRacket : String -> String -> String -> String -> String
+startRacket sh racket appdir target = """
+  #!\{ sh }
   # \{ generatedString "Racket" }
 
   set -e # exit on any error
@@ -362,9 +362,9 @@ startRacketCmd racket appdir target = """
   \{ racket } "%APPDIR%\{ target }" %*
   """
 
-startRacketWinSh : String -> String -> String -> String
-startRacketWinSh racket appdir target = """
-  #!/bin/sh
+startRacketWinSh : String -> String -> String -> String -> String
+startRacketWinSh sh racket appdir target = """
+  #!\{ sh }
   # \{ generatedString "Racket" }
 
   set -e # exit on any error
@@ -409,19 +409,19 @@ compileToRKT c appdir tm outfile
          coreLift_ $ chmodRaw outfile 0o755
          pure ()
 
-makeSh : String -> String -> String -> String -> Core ()
-makeSh racket outShRel appdir outAbs
-    = do Right () <- coreLift $ writeFile outShRel (startRacket racket appdir outAbs)
+makeSh : String -> String -> String -> String -> String -> Core ()
+makeSh sh racket outShRel appdir outAbs
+    = do Right () <- coreLift $ writeFile outShRel (startRacket sh racket appdir outAbs)
             | Left err => throw (FileErr outShRel err)
          pure ()
 
 ||| Make Windows start scripts, one for bash environments and one batch file
-makeShWindows : String -> String -> String -> String -> Core ()
-makeShWindows racket outShRel appdir outAbs
+makeShWindows : String -> String -> String -> String -> String -> Core ()
+makeShWindows sh racket outShRel appdir outAbs
     = do let cmdFile = outShRel ++ ".cmd"
          Right () <- coreLift $ writeFile cmdFile (startRacketCmd racket appdir outAbs)
             | Left err => throw (FileErr cmdFile err)
-         Right () <- coreLift $ writeFile outShRel (startRacketWinSh racket appdir outAbs)
+         Right () <- coreLift $ writeFile outShRel (startRacketWinSh sh racket appdir outAbs)
             | Left err => throw (FileErr outShRel err)
          pure ()
 
@@ -445,6 +445,7 @@ compileExpr mkexec c s tmpDir outputDir tm outfile
          let outBinAbs = cwd </> outputDir </> outBinFile
 
          compileToRKT c appDirGen tm outRktAbs
+         sh <- coreLift findSh
          raco <- coreLift findRacoExe
          racket <- coreLift findRacket
 
@@ -457,11 +458,11 @@ compileExpr mkexec c s tmpDir outputDir tm outfile
                     let outShRel = outputDir </> outfile
                     if isWindows
                        then if mkexec
-                               then makeShWindows "" outShRel appDirRel outBinFile
-                               else makeShWindows (racket ++ " ") outShRel appDirRel outRktFile
+                               then makeShWindows sh "" outShRel appDirRel outBinFile
+                               else makeShWindows sh (racket ++ " ") outShRel appDirRel outRktFile
                        else if mkexec
-                               then makeSh "" outShRel appDirRel outBinFile
-                               else makeSh (racket ++ " ") outShRel appDirRel outRktFile
+                               then makeSh sh "" outShRel appDirRel outBinFile
+                               else makeSh sh (racket ++ " ") outShRel appDirRel outRktFile
                     coreLift_ $ chmodRaw outShRel 0o755
                     pure (Just outShRel)
             else pure Nothing

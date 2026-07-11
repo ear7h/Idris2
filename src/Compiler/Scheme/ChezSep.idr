@@ -46,8 +46,8 @@ schFooter = """
   (collect-rendezvous)
   """
 
-startChez : String -> String -> String -> String
-startChez chez appDirSh targetSh = Chez.startChezPreamble ++ """
+startChez : String -> String -> String -> String -> String
+startChez sh chez appDirSh targetSh = (Chez.startChezPreamble sh) ++ """
   export LD_LIBRARY_PATH="$DIR/\{ appDirSh }:$LD_LIBRARY_PATH"
   export DYLD_LIBRARY_PATH="$DIR/\{ appDirSh }:$DYLD_LIBRARY_PATH"
 
@@ -72,9 +72,9 @@ startChezCmd chez appDirSh targetSh = """
     %*
   """
 
-startChezWinSh : String -> String -> String -> String
-startChezWinSh chez appDirSh targetSh = """
-  #!/bin/sh
+startChezWinSh : String -> String -> String -> String -> String
+startChezWinSh sh chez appDirSh targetSh = """
+  #!\{ sh }
   # \{ generatedString "ChezSep" }
 
   set -e # exit on any error
@@ -236,16 +236,16 @@ compileToSS c chez appdir tm = do
 
   pure (supportChanged, chezLibs)
 
-makeSh : String -> String -> String -> String -> Core ()
-makeSh chez outShRel appDirSh targetSh =
-  Core.writeFile outShRel (startChez chez appDirSh targetSh)
+makeSh : String -> String -> String -> String -> String -> Core ()
+makeSh sh chez outShRel appDirSh targetSh =
+  Core.writeFile outShRel (startChez sh chez appDirSh targetSh)
 
 ||| Make Windows start scripts, one for bash environments and one batch file
-makeShWindows : String -> String -> String -> String -> Core ()
-makeShWindows chez outShRel appDirSh targetSh = do
+makeShWindows : String -> String -> String -> String -> String -> Core ()
+makeShWindows sh chez outShRel appDirSh targetSh = do
   let cmdFile = outShRel ++ ".cmd"
   Core.writeFile cmdFile (startChezCmd chez appDirSh targetSh)
-  Core.writeFile outShRel (startChezWinSh chez appDirSh targetSh)
+  Core.writeFile outShRel (startChezWinSh sh chez appDirSh targetSh)
 
 ||| Chez Scheme implementation of the `compileExpr` interface.
 compileExpr :
@@ -264,6 +264,7 @@ compileExpr makeitso c s tmpDir outputDir tm outfile = do
   coreLift_ $ mkdirAll appDirRel
 
   -- generate the code
+  sh <- coreLift $ findSh
   chez <- coreLift $ findChez
   (supportChanged, chezLibs) <- compileToSS c chez appDirRel tm
 
@@ -291,8 +292,8 @@ compileExpr makeitso c s tmpDir outputDir tm outfile = do
   let outShRel = outputDir </> outfile
   let launchTargetSh = appDirSh </> "mainprog" <.> (if makeitso then "so" else "ss")
   if isWindows
-     then makeShWindows chez outShRel appDirSh launchTargetSh
-     else makeSh        chez outShRel appDirSh launchTargetSh
+     then makeShWindows sh chez outShRel appDirSh launchTargetSh
+     else makeSh        sh chez outShRel appDirSh launchTargetSh
   coreLift_ $ chmodRaw outShRel 0o755
   pure (Just outShRel)
 
