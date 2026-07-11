@@ -394,9 +394,9 @@ getFgnCall : {auto c : Ref Ctxt Defs} ->
 getFgnCall version (n, fc, d) = schFgnDef fc n d version
 
 export
-startChezPreamble : String
-startChezPreamble = """
-  #!/bin/sh
+startChezPreamble : String -> String
+startChezPreamble sh = """
+  #!\{ sh }
   # \{ generatedString "Chez" }
 
   set -e # exit on any error
@@ -409,8 +409,8 @@ startChezPreamble = """
 
   """
 
-startChez : String -> String -> String
-startChez appdir target = startChezPreamble ++ """
+startChez : String -> String -> String -> String
+startChez sh appdir target = (startChezPreamble sh) ++ """
   export LD_LIBRARY_PATH="$DIR/\{ appdir }:$LD_LIBRARY_PATH"
   export DYLD_LIBRARY_PATH="$DIR/\{ appdir }:$DYLD_LIBRARY_PATH"
   export IDRIS2_INC_SRC="$DIR/\{ appdir }"
@@ -431,9 +431,9 @@ startChezCmd chez appdir target progType = """
   "\{ chez }" \{ progType } "%APPDIR%\{ target }" %*
   """
 
-startChezWinSh : String -> String -> String -> String -> String
-startChezWinSh chez appdir target progType = """
-  #!/bin/sh
+startChezWinSh : String -> String -> String -> String -> String -> String
+startChezWinSh sh chez appdir target progType = """
+  #!\{ sh }
   # \{ generatedString "Chez" }
 
   set -e # exit on any error
@@ -570,19 +570,19 @@ compileToSSInc c mods libs appdir tm outfile
          pure ()
 
 
-makeSh : String -> String -> String -> Core ()
-makeSh outShRel appdir outAbs
-    = do Right () <- coreLift $ writeFile outShRel (startChez appdir outAbs)
+makeSh : String -> String -> String -> String -> Core ()
+makeSh sh outShRel appdir outAbs
+    = do Right () <- coreLift $ writeFile outShRel (startChez sh appdir outAbs)
             | Left err => throw (FileErr outShRel err)
          pure ()
 
 ||| Make Windows start scripts, one for bash environments and one batch file
-makeShWindows : String -> String -> String -> String -> String -> Core ()
-makeShWindows chez outShRel appdir outAbs progType
+makeShWindows : String -> String -> String -> String -> String -> String -> Core ()
+makeShWindows sh chez outShRel appdir outAbs progType
     = do let cmdFile = outShRel ++ ".cmd"
          Right () <- coreLift $ writeFile cmdFile (startChezCmd chez appdir outAbs progType)
             | Left err => throw (FileErr cmdFile err)
-         Right () <- coreLift $ writeFile outShRel (startChezWinSh chez appdir outAbs progType)
+         Right () <- coreLift $ writeFile outShRel (startChezWinSh sh chez appdir outAbs progType)
             | Left err => throw (FileErr outShRel err)
          pure ()
 
@@ -602,6 +602,7 @@ compileExprWhole makeitso c s tmpDir outputDir tm outfile
          let outSoFile = appDirRel </> outfile <.> "so"
          let outSsAbs = cwd </> outputDir </> outSsFile
          let outSoAbs = cwd </> outputDir </> outSoFile
+         sh <- coreLift $ findSh
          chez <- coreLift $ findChez
          let prof = profile !getSession
          logTime 2 "Compile to scheme" $ compileToSS c (makeitso && prof) appDirGen tm outSsAbs
@@ -609,8 +610,8 @@ compileExprWhole makeitso c s tmpDir outputDir tm outfile
            compileToSO prof chez appDirGen outSsAbs
          let outShRel = outputDir </> outfile
          if isWindows
-            then makeShWindows chez outShRel appDirRel (if makeitso then outSoFile else outSsFile) "--program"
-            else makeSh outShRel appDirRel (if makeitso then outSoFile else outSsFile)
+            then makeShWindows sh chez outShRel appDirRel (if makeitso then outSoFile else outSsFile) "--program"
+            else makeSh sh outShRel appDirRel (if makeitso then outSoFile else outSsFile)
          coreLift_ $ chmodRaw outShRel 0o755
          pure (Just outShRel)
 
@@ -635,12 +636,13 @@ compileExprInc makeitso c s tmpDir outputDir tm outfile
          let outSoFile = appDirRel </> outfile <.> "so"
          let outSsAbs = cwd </> outputDir </> outSsFile
          let outSoAbs = cwd </> outputDir </> outSoFile
+         sh <- coreLift $ findSh
          chez <- coreLift $ findChez
          compileToSSInc c mods libs appDirGen tm outSsAbs
          let outShRel = outputDir </> outfile
          if isWindows
-            then makeShWindows chez outShRel appDirRel outSsFile "--script"
-            else makeSh outShRel appDirRel outSsFile
+            then makeShWindows sh chez outShRel appDirRel outSsFile "--script"
+            else makeSh sh outShRel appDirRel outSsFile
          coreLift_ $ chmodRaw outShRel 0o755
          pure (Just outShRel)
 

@@ -28,6 +28,7 @@ envs = [
     MkEnvDesc "IDRIS2_LIBS"          "Directories where Idris2 looks for libraries (for code generation).",
     MkEnvDesc "IDRIS2_CG"            "Codegen backend.",
     MkEnvDesc "IDRIS2_INC_CGS"       "Code generators to use (comma separated) when compiling modules incrementally.",
+    MkEnvDesc "IDRIS2_SH"            "Scheme backends: sh executable to use for startup scripts",
     MkEnvDesc "CHEZ"                 "Chez backend: chez executable.",
     MkEnvDesc "RACKET"               "Racket backend: racket executable.",
     MkEnvDesc "RACKET_RACO"          "Racket backend: raco executable.",

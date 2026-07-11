@@ -11,6 +11,9 @@ import Compiler.CompileExpr
 import Core.Context
 
 import Libraries.Data.String.Builder
+import Libraries.Utils.Path
+
+import Idris.Env
 
 import Data.SortedSet
 import Data.Vect
@@ -21,6 +24,14 @@ export
 firstExists : List String -> IO (Maybe String)
 firstExists [] = pure Nothing
 firstExists (x :: xs) = if !(exists x) then pure (Just x) else firstExists xs
+
+export
+findSh : IO String
+findSh
+    = do Nothing <- idrisGetEnv "IDRIS2_SH"
+            | Just sh => pure sh
+         path <- pathLookup ["sh", "dash", "bash"]
+         pure $ fromMaybe "/bin/sh" path
 
 schString : String -> Builder
 schString s = concatMap okchar (unpack s)
