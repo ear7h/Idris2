@@ -308,6 +308,7 @@ cCall fc cfn clib args ret collectSafe
     buildArg : (Name, CFType) -> Core Builder
     buildArg (n, CFFun s t) = callback (schName n) [s] t
     buildArg (n, CFGCPtr) = pure $ "(car " ++ schName n ++ ")"
+    buildArg (n, CFStruct tn _) = pure $ "(make-ftype-pointer " ++ (fromString tn) ++ " " ++ schName n ++ ")"
     buildArg (n, _) = pure $ schName n
 
 schemeCall : FC -> (sfn : String) ->
